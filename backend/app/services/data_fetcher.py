@@ -85,8 +85,8 @@ def populate_mock_data(db: Session):
     """
     Popula o banco de dados com times, jogos históricos (finalizados) e jogos futuros (do dia).
     """
-    # 1. Verificar se já há partidas cadastradas. Se houver, não faz nada.
-    if db.query(Match).count() > 0:
+    # 1. Verificar se já há partidas agendadas (futuras). Se houver, não faz nada.
+    if db.query(Match).filter(Match.status == "scheduled").count() > 0:
         return
 
     # Caso contrário, limpa qualquer estado incompleto (como times sem partidas) e popula do zero
