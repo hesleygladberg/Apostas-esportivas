@@ -1,6 +1,7 @@
 import requests
 import random
 from datetime import datetime, timedelta
+from typing import Tuple, Dict, List
 from sqlalchemy.orm import Session
 from sqlalchemy import and_
 from app.config import settings
