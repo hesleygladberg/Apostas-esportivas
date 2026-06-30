@@ -4,9 +4,9 @@ import React from "react";
 import { Clock, TrendingUp, AlertTriangle, ShieldCheck } from "lucide-react";
 
 interface TeamInfo {
-  name: str;
-  league: str;
-  country: str;
+  name: string;
+  league: string;
+  country: string;
 }
 
 interface MatchData {
