@@ -41,6 +41,10 @@ interface MatchCardProps {
 
 export default function MatchCard({ match, onOpenAnalysis }: MatchCardProps) {
   const matchDate = new Date(match.date);
+  const formattedDate = matchDate.toLocaleDateString("pt-BR", {
+    day: "2-digit",
+    month: "2-digit",
+  });
   const formattedTime = matchDate.toLocaleTimeString("pt-BR", {
     hour: "2-digit",
     minute: "2-digit",
@@ -79,9 +83,9 @@ export default function MatchCard({ match, onOpenAnalysis }: MatchCardProps) {
         <span className="font-semibold px-2.5 py-0.5 rounded-full bg-slate-900 border border-border">
           ⚽ {match.league} ({match.country})
         </span>
-        <div className="flex items-center space-x-1 font-mono font-medium">
+        <div className="flex items-center space-x-1 font-mono text-[10px] text-slate-400">
           <Clock className="w-3.5 h-3.5 text-accent" />
-          <span>{formattedTime}</span>
+          <span>{formattedDate} às {formattedTime} (Brasília)</span>
         </div>
       </div>
 
@@ -89,11 +93,11 @@ export default function MatchCard({ match, onOpenAnalysis }: MatchCardProps) {
       <div className="space-y-3 mb-4">
         <div className="flex justify-between items-center">
           <span className="text-base font-bold text-slate-100">{match.home_team.name}</span>
-          <span className="text-xs text-slate-500 font-bold bg-slate-900/60 px-2 py-0.5 rounded-md border border-border/30">M</span>
+          <span className="text-[10px] text-slate-400 font-bold bg-slate-900/80 px-2 py-0.5 rounded-md border border-border/40 uppercase tracking-wider">Casa</span>
         </div>
         <div className="flex justify-between items-center">
           <span className="text-base font-bold text-slate-100">{match.away_team.name}</span>
-          <span className="text-xs text-slate-500 font-bold bg-slate-900/60 px-2 py-0.5 rounded-md border border-border/30">V</span>
+          <span className="text-[10px] text-slate-400 font-bold bg-slate-900/80 px-2 py-0.5 rounded-md border border-border/40 uppercase tracking-wider">Visitante</span>
         </div>
       </div>
 
