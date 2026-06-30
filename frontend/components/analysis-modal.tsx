@@ -36,7 +36,7 @@ interface MatchData {
 
 interface TeamFormStats {
   team_name: string;
-  games_played: int;
+  games_played: number;
   wins: number;
   draws: number;
   losses: number;
