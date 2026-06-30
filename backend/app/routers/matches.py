@@ -130,3 +130,24 @@ def get_poisson_matrix(match_id: int, db: Session = Depends(get_db)):
     )
     
     return score_matrix
+
+@router.get("/debug")
+def get_debug_info(db: Session = Depends(get_db)):
+    try:
+        team_count = db.query(Team).count()
+        match_count = db.query(Match).count()
+        scheduled_count = db.query(Match).filter(Match.status == "scheduled").count()
+        finished_count = db.query(Match).filter(Match.status == "finished").count()
+        
+        return {
+            "status": "connected",
+            "team_count": team_count,
+            "match_count": match_count,
+            "scheduled_count": scheduled_count,
+            "finished_count": finished_count,
+        }
+    except Exception as e:
+        return {
+            "status": "error",
+            "error_detail": str(e)
+        }
