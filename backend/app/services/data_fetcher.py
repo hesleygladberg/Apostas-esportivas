@@ -6,7 +6,7 @@ from sqlalchemy.orm import Session
 from sqlalchemy import and_
 from app.config import settings
 from app.models import Team, Match
-from app.services.poisson_model import calculate_match_probabilities
+from app.services.poisson_model import calculate_match_probabilities, get_poisson_probability
 from app.services.value_scanner import scan_match_value
 
 # Dicionário de Times e Ligas para o Modo Mock
