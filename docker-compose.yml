@@ -1,0 +1,67 @@
+version: '3.8'
+
+services:
+  # Banco de Dados PostgreSQL
+  postgres:
+    image: postgres:15-alpine
+    container_name: trade_scanner_postgres
+    restart: always
+    environment:
+      POSTGRES_USER: trade_user
+      POSTGRES_PASSWORD: trade_password
+      POSTGRES_DB: trade_scanner
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+
+  # Cache Redis
+  redis:
+    image: redis:7-alpine
+    container_name: trade_scanner_redis
+    restart: always
+    ports:
+      - "6379:6379"
+
+  # Backend FastAPI
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: trade_scanner_backend
+    restart: always
+    environment:
+      - PORT=8000
+      - HOST=0.0.0.0
+      - DATABASE_URL=postgresql://trade_user:trade_password@postgres:5432/trade_scanner
+      - MOCK_MODE=true
+      - GEMINI_API_KEY=
+      - THE_ODDS_API_KEY=
+      - FOOTBALL_DATA_API_KEY=
+    ports:
+      - "8000:8000"
+    depends_on:
+      - postgres
+      - redis
+
+  # Frontend Next.js
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: tsconfig.json # Next.js se compila usando npm install
+    image: node:18-alpine
+    container_name: trade_scanner_frontend
+    restart: always
+    working_dir: /app
+    volumes:
+      - ./frontend:/app
+    command: sh -c "npm install && npm run build && npm run start"
+    ports:
+      - "3000:3000"
+    environment:
+      - NEXT_PUBLIC_API_URL=http://localhost:8000
+    depends_on:
+      - backend
+
+volumes:
+  postgres_data:
