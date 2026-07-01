@@ -2,7 +2,15 @@ import os
 from pydantic_settings import BaseSettings
 from dotenv import load_dotenv
 
-load_dotenv()
+# Carrega o arquivo .env robustamente independente de onde o processo foi iniciado
+if os.path.exists(".env"):
+    load_dotenv(".env")
+elif os.path.exists("backend/.env"):
+    load_dotenv("backend/.env")
+elif os.path.exists("../.env"):
+    load_dotenv("../.env")
+else:
+    load_dotenv()
 
 class Settings(BaseSettings):
     PORT: int = int(os.getenv("PORT", 8000))
