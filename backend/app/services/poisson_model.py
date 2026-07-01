@@ -152,3 +152,40 @@ def calculate_match_probabilities(home_team_id: int, away_team_id: int, league_n
             score_matrix[k] = score_matrix[k] / total_prob
 
     return prob_home, prob_draw, prob_away, expected_home, expected_away, score_matrix
+
+
+def calculate_over_under_probabilities(score_matrix: Dict[str, float]) -> Dict[float, float]:
+    """
+    Calcula as probabilidades de Under/Over para 0.5, 1.5, 2.5, 3.5 gols.
+    Retorna um dicionário {threshold: prob_under}
+    """
+    under_probs = {0.5: 0.0, 1.5: 0.0, 2.5: 0.0, 3.5: 0.0}
+    
+    for score_key, prob in score_matrix.items():
+        try:
+            h, a = map(int, score_key.split("x"))
+            total_goals = h + a
+            for threshold in under_probs.keys():
+                if total_goals < threshold:
+                    under_probs[threshold] += prob
+        except ValueError:
+            continue
+            
+    return under_probs
+
+
+def calculate_btts_probabilities(score_matrix: Dict[str, float]) -> float:
+    """
+    Calcula a probabilidade de Ambos Marcam (BTTS Sim).
+    Retorna a probabilidade (0.0 a 1.0) de BTTS Sim.
+    """
+    btts_sim = 0.0
+    for score_key, prob in score_matrix.items():
+        try:
+            h, a = map(int, score_key.split("x"))
+            if h > 0 and a > 0:
+                btts_sim += prob
+        except ValueError:
+            continue
+            
+    return btts_sim

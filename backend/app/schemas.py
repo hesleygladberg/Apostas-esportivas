@@ -122,3 +122,73 @@ class RankingsResponse(BaseModel):
 
     class Config:
         from_attributes = True
+
+# --- V1.1 ADVANCED SCHEMAS ---
+class ConfidenceBreakdown(BaseModel):
+    final_score: int
+    attack: int
+    defense: int
+    form: int
+    h2h: int
+    volume: int
+
+class MarketDetail(BaseModel):
+    market: str
+    probabilidade: float
+    odd_justa: float
+    odd_mercado: float
+    edge: float
+    recommendation: str
+
+class LayDrawMarket(BaseModel):
+    probabilidade: float
+    odd_justa: float
+    odd_mercado: float
+    edge: float
+    recommendation: str
+    destacar: bool
+
+class LiquidityDetails(BaseModel):
+    liquidez_disponivel: Optional[float] = None
+    volume_negociado: Optional[float] = None
+    volume_correspondente: Optional[float] = None
+    status: str  # "online" ou "offline"
+
+class AdvancedMatchAnalysis(BaseModel):
+    match_id: int
+    confidence_breakdown: ConfidenceBreakdown
+    goals_markets: List[MarketDetail]
+    btts_market: List[MarketDetail]
+    lay_draw: LayDrawMarket
+    liquidity: LiquidityDetails
+
+# --- PERFORMANCE SCHEMAS ---
+class PerformancePeriod(BaseModel):
+    entradas: int
+    vitorias: int
+    derrotas: int
+    taxa_acerto: float
+    roi: float
+    lucro_unidades: float
+    lucro_percentual: float
+
+class PerformanceDataPoint(BaseModel):
+    date: str
+    lucro_acumulado: float
+
+class PerformanceHistoryResponse(BaseModel):
+    period_7d: PerformancePeriod
+    period_30d: PerformancePeriod
+    period_90d: PerformancePeriod
+    chart_data: List[PerformanceDataPoint]
+
+# --- ADVANCED RANKINGS SCHEMAS ---
+class RankingsAdvancedResponse(BaseModel):
+    top_backs: List[MatchDetailResponse]
+    top_lays: List[MatchDetailResponse]
+    top_edges: List[MatchDetailResponse]
+    top_ev: List[MatchDetailResponse]
+    top_confidence: List[MatchDetailResponse]
+    top_distortions: List[MatchDetailResponse]
+    top_inflated_odds: List[MatchDetailResponse]
+    top_underpriced_odds: List[MatchDetailResponse]

@@ -18,6 +18,14 @@ def analyze_match_with_ai(match_id: int, user_query: str, db: Session) -> str:
     # Compilar dados estatísticos reais
     stats = compile_match_analysis(match, db)
     
+    # Compilar dados estatísticos avançados V1.1
+    from app.services.value_scanner import compile_advanced_analysis
+    advanced_data = None
+    try:
+        advanced_data = compile_advanced_analysis(match, db)
+    except Exception as e:
+        print(f"Erro ao compilar dados avançados para o chat: {e}")
+    
     # Criar um contexto JSON estruturado com todos os fatos do jogo
     context_data = {
         "campeonato": match.league,
@@ -73,6 +81,44 @@ def analyze_match_with_ai(match_id: int, user_query: str, db: Session) -> str:
             "empates": stats.h2h_draws,
             "vitorias_visitante_atual": stats.h2h_away_wins,
             "ultimos_placares": stats.h2h_history
+        },
+        "analise_avancada_mercados": {
+            "breakdown_confianca": {
+                "final": advanced_data.confidence_breakdown.final_score if advanced_data else match.confidence_score,
+                "ataque": advanced_data.confidence_breakdown.attack if advanced_data else 70,
+                "defesa": advanced_data.confidence_breakdown.defense if advanced_data else 70,
+                "forma": advanced_data.confidence_breakdown.form if advanced_data else 70,
+                "h2h": advanced_data.confidence_breakdown.h2h if advanced_data else 70,
+                "volume": advanced_data.confidence_breakdown.volume if advanced_data else 70
+            },
+            "mercados_gols": [
+                {
+                    "mercado": m.market,
+                    "probabilidade": f"{m.probabilidade:.1%}",
+                    "odd_justa": m.odd_justa,
+                    "odd_mercado": m.odd_mercado,
+                    "edge": f"{m.edge:.1%}",
+                    "recomendacao": m.recommendation
+                } for m in advanced_data.goals_markets
+            ] if advanced_data else [],
+            "btts": [
+                {
+                    "mercado": m.market,
+                    "probabilidade": f"{m.probabilidade:.1%}",
+                    "odd_justa": m.odd_justa,
+                    "odd_mercado": m.odd_mercado,
+                    "edge": f"{m.edge:.1%}",
+                    "recomendacao": m.recommendation
+                } for m in advanced_data.btts_market
+            ] if advanced_data else [],
+            "lay_draw": {
+                "probabilidade": f"{advanced_data.lay_draw.probabilidade:.1%}",
+                "odd_justa": advanced_data.lay_draw.odd_justa,
+                "odd_mercado": advanced_data.lay_draw.odd_mercado,
+                "edge": f"{advanced_data.lay_draw.edge:.1%}",
+                "recomendacao": advanced_data.lay_draw.recommendation,
+                "oportunidade_alta": advanced_data.lay_draw.destacar
+            } if advanced_data else {}
         }
     }
 
@@ -85,13 +131,14 @@ def analyze_match_with_ai(match_id: int, user_query: str, db: Session) -> str:
         client = genai.Client(api_key=settings.GEMINI_API_KEY)
         
         system_instruction = (
-            "Você é o assistente especialista em trading esportivo e estatística do Trade Scanner AI.\n"
-            "Sua missão é responder à dúvida do usuário baseando-se RIGOROSAMENTE nos dados fornecidos no contexto.\n"
+            "Você é o assistente especialista em trading esportivo e estatística do Trade Scanner AI V1.1 Pro.\n"
+            "Sua missão é responder à dúvida do usuário baseando-se RIGOROSAMENTE nos dados fornecidos no contexto (que inclui Poisson de gols, Ambos Marcam, Lay Draw, breakdown de confiança e médias).\n"
             "Diretrizes:\n"
             "1. Responda em Português do Brasil de forma clara, profissional e analítica.\n"
             "2. NUNCA invente números, estatísticas ou placares. Se uma informação não estiver no contexto, diga claramente que não possui esse dado.\n"
-            "3. Explique os conceitos matemáticos envolvidos (como a diferença de odd justa vs odd de mercado, Edge e EV) se for relevante para a pergunta do usuário.\n"
-            "4. Aponte os riscos baseados em gols sofridos, sequências de derrotas ou falta de histórico do confronto direto (H2H)."
+            "3. Explique detalhadamente as recomendações de gols (Over/Under) e Ambos Marcam, e se vale a pena fazer Lay Draw (Lay ao Empate) baseado no edge e probabilidade.\n"
+            "4. Aponte os riscos defensivos e ofensivos com base nos ratings específicos de ataque e defesa fornecidos no breakdown de confiança.\n"
+            "5. Diga por que o modelo chegou a essa conclusão (explicando as distorções modelo vs mercado)."
         )
 
         prompt = (

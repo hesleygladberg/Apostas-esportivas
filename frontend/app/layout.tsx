@@ -52,7 +52,7 @@ export default function RootLayout({
                 <span className="text-lg font-bold tracking-tight bg-gradient-to-r from-white to-slate-400 bg-clip-text text-transparent">
                   Trade Scanner <span className="text-accent">AI</span>
                 </span>
-                <span className="text-xs block text-slate-500 font-medium">V1.0 - Poisson Engine</span>
+                <span className="text-xs block text-slate-500 font-medium">V1.1 - Trade Scanner AI Pro</span>
               </div>
             </div>
 
@@ -69,6 +69,12 @@ export default function RootLayout({
                 className="px-3 py-2 rounded-lg text-sm font-semibold hover:bg-slate-800 transition-colors"
               >
                 Rankings Diários
+              </Link>
+              <Link
+                href="/performance"
+                className="px-3 py-2 rounded-lg text-sm font-semibold hover:bg-slate-800 transition-colors"
+              >
+                Performance
               </Link>
             </nav>
 

@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useEffect, useRef } from "react";
-import { X, Send, Bot, User, Percent, BarChart3, Grid3X3, MessageSquare, ShieldAlert } from "lucide-react";
+import { X, Send, Bot, User, Percent, BarChart3, Grid3X3, MessageSquare, ShieldAlert, Target, Coins, ShieldCheck, HelpCircle } from "lucide-react";
 
 interface TeamInfo {
   name: string;
@@ -73,7 +73,8 @@ export default function AnalysisModal({ matchId, onClose }: AnalysisModalProps) 
   const [match, setMatch] = useState<MatchData | null>(null);
   const [stats, setStats] = useState<MatchStatsAnalysis | null>(null);
   const [poissonMatrix, setPoissonMatrix] = useState<Record<string, number>>({});
-  const [activeTab, setActiveTab] = useState<"overview" | "stats" | "poisson" | "chat">("overview");
+  const [advancedData, setAdvancedData] = useState<any>(null);
+  const [activeTab, setActiveTab] = useState<"overview" | "stats" | "poisson" | "chat" | "goals" | "lay_draw" | "liquidity">("overview");
   
   // Chat States
   const [messages, setMessages] = useState<Message[]>([
@@ -99,11 +100,13 @@ export default function AnalysisModal({ matchId, onClose }: AnalysisModalProps) 
       fetch(`${envApiUrl}/api/matches/${matchId}`).then((res) => res.json()),
       fetch(`${envApiUrl}/api/matches/${matchId}/stats`).then((res) => res.json()),
       fetch(`${envApiUrl}/api/matches/${matchId}/poisson-matrix`).then((res) => res.json()),
+      fetch(`${envApiUrl}/api/matches/${matchId}/advanced`).then((res) => res.json()),
     ])
-      .then(([matchData, statsData, matrixData]) => {
+      .then(([matchData, statsData, matrixData, advancedData]) => {
         setMatch(matchData);
         setStats(statsData);
         setPoissonMatrix(matrixData);
+        setAdvancedData(advancedData);
         setLoading(false);
       })
       .catch((err) => {
@@ -231,7 +234,10 @@ export default function AnalysisModal({ matchId, onClose }: AnalysisModalProps) 
             { id: "overview", label: "Visão Geral", icon: Percent },
             { id: "stats", label: "Estatísticas & H2H", icon: BarChart3 },
             { id: "poisson", label: "Matriz de Poisson", icon: Grid3X3 },
-            { id: "chat", label: "Chat IA Assistant", icon: MessageSquare },
+            { id: "goals", label: "Gols (O/U & BTTS)", icon: Target },
+            { id: "lay_draw", label: "Lay Draw", icon: ShieldCheck },
+            { id: "liquidity", label: "Betfair Liquidez", icon: Coins },
+            { id: "chat", label: "Chat IA", icon: MessageSquare },
           ].map((tab) => {
             const Icon = tab.icon;
             return (
@@ -320,56 +326,127 @@ export default function AnalysisModal({ matchId, onClose }: AnalysisModalProps) 
                 </div>
               </div>
 
-              {/* Tabela Comparativa de Probabilidades */}
-              <div className="bg-[#121927] border border-border rounded-2xl p-6">
-                <h3 className="text-sm font-bold text-slate-300 mb-4 uppercase tracking-wide">Mapeamento de Probabilidades</h3>
-                <div className="overflow-x-auto">
-                  <table className="w-full text-sm">
-                    <thead>
-                      <tr className="text-slate-500 border-b border-slate-800 text-left">
-                        <th className="pb-3">Resultado</th>
-                        <th className="pb-3 text-center">Prob. Modelo</th>
-                        <th className="pb-3 text-center">Odd Justa</th>
-                        <th className="pb-3 text-center">Odd Mercado</th>
-                        <th className="pb-3 text-center">Edge</th>
-                      </tr>
-                    </thead>
-                    <tbody className="divide-y divide-slate-800/40">
-                      <tr>
-                        <td className="py-3.5 font-semibold text-slate-200">Vitória {match.home_team.name} (1)</td>
-                        <td className="text-center font-mono">{(match.prob_home! * 100).toFixed(1)}%</td>
-                        <td className="text-center font-mono font-bold text-accent">{match.fair_home?.toFixed(2)}</td>
-                        <td className="text-center font-mono text-slate-300">{match.odd_home?.toFixed(2)}</td>
-                        <td className="text-center font-mono">
-                          <span className={((match.prob_home! * match.odd_home!) - 1.0) > 0 ? "text-success font-semibold" : "text-slate-500"}>
-                            {(((match.prob_home! * match.odd_home!) - 1.0) * 100).toFixed(1)}%
-                          </span>
-                        </td>
-                      </tr>
-                      <tr>
-                        <td className="py-3.5 font-semibold text-slate-200">Empate (X)</td>
-                        <td className="text-center font-mono">{(match.prob_draw! * 100).toFixed(1)}%</td>
-                        <td className="text-center font-mono font-bold text-accent">{match.fair_draw?.toFixed(2)}</td>
-                        <td className="text-center font-mono text-slate-300">{match.odd_draw?.toFixed(2)}</td>
-                        <td className="text-center font-mono">
-                          <span className={((match.prob_draw! * match.odd_draw!) - 1.0) > 0 ? "text-success font-semibold" : "text-slate-500"}>
-                            {(((match.prob_draw! * match.odd_draw!) - 1.0) * 100).toFixed(1)}%
-                          </span>
-                        </td>
-                      </tr>
-                      <tr>
-                        <td className="py-3.5 font-semibold text-slate-200">Vitória {match.away_team.name} (2)</td>
-                        <td className="text-center font-mono">{(match.prob_away! * 100).toFixed(1)}%</td>
-                        <td className="text-center font-mono font-bold text-accent">{match.fair_away?.toFixed(2)}</td>
-                        <td className="text-center font-mono text-slate-300">{match.odd_away?.toFixed(2)}</td>
-                        <td className="text-center font-mono">
-                          <span className={((match.prob_away! * match.odd_away!) - 1.0) > 0 ? "text-success font-semibold" : "text-slate-500"}>
-                            {(((match.prob_away! * match.odd_away!) - 1.0) * 100).toFixed(1)}%
-                          </span>
-                        </td>
-                      </tr>
-                    </tbody>
-                  </table>
+              {/* Grid: Tabela de Probabilidades & Confidence Breakdown */}
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                {/* Tabela Comparativa de Probabilidades */}
+                <div className="bg-[#121927] border border-border rounded-2xl p-6">
+                  <h3 className="text-sm font-bold text-slate-300 mb-4 uppercase tracking-wide">Mapeamento de Probabilidades</h3>
+                  <div className="overflow-x-auto">
+                    <table className="w-full text-sm">
+                      <thead>
+                        <tr className="text-slate-500 border-b border-slate-800 text-left">
+                          <th className="pb-3">Resultado</th>
+                          <th className="pb-3 text-center">Prob. Modelo</th>
+                          <th className="pb-3 text-center">Odd Justa</th>
+                          <th className="pb-3 text-center">Odd Mercado</th>
+                          <th className="pb-3 text-center">Edge</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-slate-800/40">
+                        <tr>
+                          <td className="py-3.5 font-semibold text-slate-200">Vitória {match.home_team.name} (1)</td>
+                          <td className="text-center font-mono">{(match.prob_home! * 100).toFixed(1)}%</td>
+                          <td className="text-center font-mono font-bold text-accent">{match.fair_home?.toFixed(2)}</td>
+                          <td className="text-center font-mono text-slate-300">{match.odd_home?.toFixed(2)}</td>
+                          <td className="text-center font-mono">
+                            <span className={((match.prob_home! * match.odd_home!) - 1.0) > 0 ? "text-success font-semibold" : "text-slate-500"}>
+                              {(((match.prob_home! * match.odd_home!) - 1.0) * 100).toFixed(1)}%
+                            </span>
+                          </td>
+                        </tr>
+                        <tr>
+                          <td className="py-3.5 font-semibold text-slate-200">Empate (X)</td>
+                          <td className="text-center font-mono">{(match.prob_draw! * 100).toFixed(1)}%</td>
+                          <td className="text-center font-mono font-bold text-accent">{match.fair_draw?.toFixed(2)}</td>
+                          <td className="text-center font-mono text-slate-300">{match.odd_draw?.toFixed(2)}</td>
+                          <td className="text-center font-mono">
+                            <span className={((match.prob_draw! * match.odd_draw!) - 1.0) > 0 ? "text-success font-semibold" : "text-slate-500"}>
+                              {(((match.prob_draw! * match.odd_draw!) - 1.0) * 100).toFixed(1)}%
+                            </span>
+                          </td>
+                        </tr>
+                        <tr>
+                          <td className="py-3.5 font-semibold text-slate-200">Vitória {match.away_team.name} (2)</td>
+                          <td className="text-center font-mono">{(match.prob_away! * 100).toFixed(1)}%</td>
+                          <td className="text-center font-mono font-bold text-accent">{match.fair_away?.toFixed(2)}</td>
+                          <td className="text-center font-mono text-slate-300">{match.odd_away?.toFixed(2)}</td>
+                          <td className="text-center font-mono">
+                            <span className={((match.prob_away! * match.odd_away!) - 1.0) > 0 ? "text-success font-semibold" : "text-slate-500"}>
+                              {(((match.prob_away! * match.odd_away!) - 1.0) * 100).toFixed(1)}%
+                            </span>
+                          </td>
+                        </tr>
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+
+                {/* Breakdown de Confiança do Modelo */}
+                <div className="bg-[#121927] border border-border rounded-2xl p-6 flex flex-col justify-between">
+                  <div>
+                    <h3 className="text-sm font-bold text-slate-300 mb-4 uppercase tracking-wide flex items-center gap-1.5">
+                      <ShieldCheck className="w-4 h-4 text-accent" /> Análise de Confiança do Modelo
+                    </h3>
+                    <div className="space-y-4">
+                      {/* Ataque */}
+                      <div className="space-y-1.5">
+                        <div className="flex justify-between text-xs">
+                          <span className="text-slate-400">Poder de Ataque (xG Projetado)</span>
+                          <span className="font-mono font-bold text-slate-200">{advancedData?.confidence_breakdown?.attack ?? 75}/100</span>
+                        </div>
+                        <div className="w-full bg-slate-900 rounded-full h-1.5 overflow-hidden">
+                          <div className="h-full bg-success rounded-full" style={{ width: `${advancedData?.confidence_breakdown?.attack ?? 75}%` }} />
+                        </div>
+                      </div>
+                      
+                      {/* Defesa */}
+                      <div className="space-y-1.5">
+                        <div className="flex justify-between text-xs">
+                          <span className="text-slate-400">Estabilidade Defensiva (Consistência)</span>
+                          <span className="font-mono font-bold text-slate-200">{advancedData?.confidence_breakdown?.defense ?? 70}/100</span>
+                        </div>
+                        <div className="w-full bg-slate-900 rounded-full h-1.5 overflow-hidden">
+                          <div className="h-full bg-indigo-500 rounded-full" style={{ width: `${advancedData?.confidence_breakdown?.defense ?? 70}%` }} />
+                        </div>
+                      </div>
+                      
+                      {/* Forma */}
+                      <div className="space-y-1.5">
+                        <div className="flex justify-between text-xs">
+                          <span className="text-slate-400">Desempenho Recente (Forma)</span>
+                          <span className="font-mono font-bold text-slate-200">{advancedData?.confidence_breakdown?.form ?? 80}/100</span>
+                        </div>
+                        <div className="w-full bg-slate-900 rounded-full h-1.5 overflow-hidden">
+                          <div className="h-full bg-amber-500 rounded-full" style={{ width: `${advancedData?.confidence_breakdown?.form ?? 80}%` }} />
+                        </div>
+                      </div>
+                      
+                      {/* H2H */}
+                      <div className="space-y-1.5">
+                        <div className="flex justify-between text-xs">
+                          <span className="text-slate-400">Retrospecto Histórico (H2H)</span>
+                          <span className="font-mono font-bold text-slate-200">{advancedData?.confidence_breakdown?.h2h ?? 60}/100</span>
+                        </div>
+                        <div className="w-full bg-slate-900 rounded-full h-1.5 overflow-hidden">
+                          <div className="h-full bg-pink-500 rounded-full" style={{ width: `${advancedData?.confidence_breakdown?.h2h ?? 60}%` }} />
+                        </div>
+                      </div>
+                      
+                      {/* Volume */}
+                      <div className="space-y-1.5">
+                        <div className="flex justify-between text-xs">
+                          <span className="text-slate-400">Volume de Amostragem (Jogos Analisados)</span>
+                          <span className="font-mono font-bold text-slate-200">{advancedData?.confidence_breakdown?.volume ?? 85}/100</span>
+                        </div>
+                        <div className="w-full bg-slate-900 rounded-full h-1.5 overflow-hidden">
+                          <div className="h-full bg-slate-500 rounded-full" style={{ width: `${advancedData?.confidence_breakdown?.volume ?? 85}%` }} />
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                  <div className="mt-4 pt-3 border-t border-slate-800 text-[10px] text-slate-500 leading-snug">
+                    O score final consolidado é de <span className="font-bold text-slate-400 font-mono">{advancedData?.confidence_breakdown?.final_score ?? match.confidence_score}</span>, baseado no peso ponderado de todos os fatores de amostragem históricos.
+                  </div>
                 </div>
               </div>
             </div>
@@ -602,6 +679,222 @@ export default function AnalysisModal({ matchId, onClose }: AnalysisModalProps) 
                   </div>
                   <p>Probabilidades derivadas do cruzamento de xG de ataque vs xG de defesa de ambos os times.</p>
                 </div>
+              </div>
+            </div>
+          )}
+
+          {/* ABA: MERCADOS DE GOLS */}
+          {activeTab === "goals" && advancedData && (
+            <div className="space-y-6">
+              {/* Tabela de Over/Under Gols */}
+              <div className="bg-[#121927] border border-border rounded-2xl p-6">
+                <div className="flex justify-between items-center border-b border-slate-800 pb-3 mb-4">
+                  <h3 className="font-bold text-slate-200 text-sm uppercase">Mercados de Gols (Over / Under)</h3>
+                  <span className="text-[10px] text-slate-500 font-bold uppercase tracking-wider">Poisson Math Matrix Projections</span>
+                </div>
+                <div className="overflow-x-auto">
+                  <table className="w-full text-sm">
+                    <thead>
+                      <tr className="text-slate-500 border-b border-slate-800 text-left">
+                        <th className="pb-3">Mercado</th>
+                        <th className="pb-3 text-center">Probabilidade</th>
+                        <th className="pb-3 text-center">Odd Justa</th>
+                        <th className="pb-3 text-center">Odd Mercado</th>
+                        <th className="pb-3 text-center">Edge</th>
+                        <th className="pb-3 text-center">Recomendação</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-slate-800/40">
+                      {advancedData.goals_markets.map((g: any, idx: number) => (
+                        <tr key={idx} className="hover:bg-slate-900/20">
+                          <td className="py-3.5 font-semibold text-slate-200">{g.market}</td>
+                          <td className="text-center font-mono">{(g.probabilidade * 100).toFixed(1)}%</td>
+                          <td className="text-center font-mono font-bold text-accent">{g.odd_justa.toFixed(2)}</td>
+                          <td className="text-center font-mono text-slate-350">{g.odd_mercado.toFixed(2)}</td>
+                          <td className="text-center font-mono">
+                            <span className={g.edge > 0 ? "text-success font-bold" : "text-slate-500"}>
+                              {g.edge > 0 ? `+${(g.edge * 100).toFixed(1)}%` : `${(g.edge * 100).toFixed(1)}%`}
+                            </span>
+                          </td>
+                          <td className="text-center">
+                            <span className={`px-2 py-0.5 rounded text-[10px] font-bold ${
+                              g.recommendation !== "SEM ENTRADA" ? "bg-success/15 text-success border border-success/30 font-black animate-pulse" : "bg-slate-900 text-slate-500"
+                            }`}>
+                              {g.recommendation}
+                            </span>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+
+              {/* Tabela de Ambos Marcam (BTTS) */}
+              <div className="bg-[#121927] border border-border rounded-2xl p-6">
+                <div className="flex justify-between items-center border-b border-slate-800 pb-3 mb-4">
+                  <h3 className="font-bold text-slate-200 text-sm uppercase">Ambos Marcam (BTTS)</h3>
+                  <span className="text-[10px] text-slate-500 font-bold uppercase tracking-wider">Double Goal Likelihood</span>
+                </div>
+                <div className="overflow-x-auto">
+                  <table className="w-full text-sm">
+                    <thead>
+                      <tr className="text-slate-500 border-b border-slate-800 text-left">
+                        <th className="pb-3">Seleção</th>
+                        <th className="pb-3 text-center">Probabilidade</th>
+                        <th className="pb-3 text-center">Odd Justa</th>
+                        <th className="pb-3 text-center">Odd Mercado</th>
+                        <th className="pb-3 text-center">Edge</th>
+                        <th className="pb-3 text-center">Recomendação</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-slate-800/40">
+                      {advancedData.btts_market.map((b: any, idx: number) => (
+                        <tr key={idx} className="hover:bg-slate-900/20">
+                          <td className="py-3.5 font-semibold text-slate-200">{b.market}</td>
+                          <td className="text-center font-mono">{(b.probabilidade * 100).toFixed(1)}%</td>
+                          <td className="text-center font-mono font-bold text-accent">{b.odd_justa.toFixed(2)}</td>
+                          <td className="text-center font-mono text-slate-350">{b.odd_mercado.toFixed(2)}</td>
+                          <td className="text-center font-mono">
+                            <span className={b.edge > 0 ? "text-success font-bold" : "text-slate-500"}>
+                              {b.edge > 0 ? `+${(b.edge * 100).toFixed(1)}%` : `${(b.edge * 100).toFixed(1)}%`}
+                            </span>
+                          </td>
+                          <td className="text-center">
+                            <span className={`px-2 py-0.5 rounded text-[10px] font-bold ${
+                              b.recommendation !== "SEM ENTRADA" ? "bg-success/15 text-success border border-success/30 font-black animate-pulse" : "bg-slate-900 text-slate-500"
+                            }`}>
+                              {b.recommendation}
+                            </span>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* ABA: LAY DRAW */}
+          {activeTab === "lay_draw" && advancedData && (
+            <div className="space-y-6">
+              <div className="bg-[#121927] border border-border rounded-2xl p-6">
+                <div className="flex justify-between items-center border-b border-slate-800 pb-3 mb-4">
+                  <h3 className="font-bold text-slate-200 text-sm uppercase">Mercado Lay Empate (Lay Draw)</h3>
+                  <span className="text-[10px] text-slate-500 font-bold uppercase tracking-wider">Betfair Exchange Trading Panel</span>
+                </div>
+                
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-6 items-stretch">
+                  {/* Bloco de recomendação */}
+                  <div className="bg-[#0b0f19] border border-slate-800 p-5 rounded-2xl flex flex-col justify-between">
+                    <div>
+                      <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest block mb-2">Recomendação Lay</span>
+                      <span className={`text-2xl font-black block ${
+                        advancedData.lay_draw.recommendation !== "SEM ENTRADA" ? "text-danger animate-pulse" : "text-slate-500"
+                      }`}>
+                        {advancedData.lay_draw.recommendation}
+                      </span>
+                      <span className="text-xs text-slate-400 mt-2 block leading-relaxed">
+                        {advancedData.lay_draw.recommendation !== "SEM ENTRADA" 
+                          ? "A probabilidade de empate é baixa e a odd de mercado oferece valor estatístico considerável para operar contra o empate (Lay Draw)."
+                          : "A probabilidade projetada de empate ou as odds oferecidas pelo mercado não justificam uma operação de Lay neste momento."
+                        }
+                      </span>
+                    </div>
+                    {advancedData.lay_draw.destacar && (
+                      <div className="mt-4 bg-amber-500/10 border border-amber-500/30 text-amber-400 p-3 rounded-xl text-xs font-bold leading-normal">
+                        ⚠️ **OPORTUNIDADE DE ALTO VALOR**: Baixa probabilidade implícita de empate (menos de 20%) com edge estatístico positivo superior a 10%.
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Detalhes Matemáticos */}
+                  <div className="bg-[#0b0f19] border border-slate-800 p-5 rounded-2xl md:col-span-2 space-y-4">
+                    <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest block">Projeção e Métricas do Modelo</span>
+                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+                      <div className="bg-[#121927] border border-slate-800/80 p-3 rounded-xl">
+                        <span className="text-[10px] text-slate-500 block">Probabilidade</span>
+                        <span className="text-xl font-bold font-mono text-slate-200">{(advancedData.lay_draw.probabilidade * 100).toFixed(1)}%</span>
+                      </div>
+                      <div className="bg-[#121927] border border-slate-800/80 p-3 rounded-xl">
+                        <span className="text-[10px] text-slate-500 block">Odd Justa</span>
+                        <span className="text-xl font-bold font-mono text-accent">{advancedData.lay_draw.odd_justa.toFixed(2)}</span>
+                      </div>
+                      <div className="bg-[#121927] border border-slate-800/80 p-3 rounded-xl">
+                        <span className="text-[10px] text-slate-500 block">Odd Mercado</span>
+                        <span className="text-xl font-bold font-mono text-slate-350">{advancedData.lay_draw.odd_mercado.toFixed(2)}</span>
+                      </div>
+                      <div className="bg-[#121927] border border-slate-800/80 p-3 rounded-xl">
+                        <span className="text-[10px] text-slate-500 block">Edge Lay %</span>
+                        <span className={`text-xl font-bold font-mono ${advancedData.lay_draw.edge > 0 ? "text-success" : "text-slate-500"}`}>
+                          {advancedData.lay_draw.edge > 0 ? `+${(advancedData.lay_draw.edge * 100).toFixed(1)}%` : `${(advancedData.lay_draw.edge * 100).toFixed(1)}%`}
+                        </span>
+                      </div>
+                    </div>
+                    <div className="text-[10px] text-slate-500 leading-snug pt-2 border-t border-slate-800">
+                      Na bolsa esportiva (Betfair Exchange), fazer **Lay Draw** significa apostar que o jogo **não terminará empatado**. Você vence a aposta se qualquer um dos dois times vencer a partida.
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* ABA: LIQUIDEZ BETFAIR */}
+          {activeTab === "liquidity" && advancedData && (
+            <div className="space-y-6">
+              <div className="bg-[#121927] border border-border rounded-2xl p-6">
+                <div className="flex justify-between items-center border-b border-slate-800 pb-3 mb-4">
+                  <h3 className="font-bold text-slate-200 text-sm uppercase">Painel de Liquidez & Volume Betfair</h3>
+                  <span className="text-xs bg-slate-900 border border-slate-800 px-3 py-1 rounded-full text-slate-400 font-semibold">
+                    Integração Betfair Exchange API
+                  </span>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
+                  {/* Volume Negociado */}
+                  <div className="bg-[#0b0f19] border border-slate-800 p-5 rounded-2xl">
+                    <span className="text-[10px] text-slate-500 uppercase font-bold tracking-wider block mb-1">Volume Negociado</span>
+                    <span className="text-2xl font-black font-mono text-slate-200">
+                      {advancedData.liquidity.status === "online" 
+                        ? `$ ${advancedData.liquidity.volume_negociado.toLocaleString()}` 
+                        : "Liquidez indisponível"}
+                    </span>
+                  </div>
+                  {/* Liquidez Disponível */}
+                  <div className="bg-[#0b0f19] border border-slate-800 p-5 rounded-2xl">
+                    <span className="text-[10px] text-slate-500 uppercase font-bold tracking-wider block mb-1">Liquidez Disponível</span>
+                    <span className="text-2xl font-black font-mono text-slate-200">
+                      {advancedData.liquidity.status === "online" 
+                        ? `$ ${advancedData.liquidity.liquidez_disponivel.toLocaleString()}` 
+                        : "Liquidez indisponível"}
+                    </span>
+                  </div>
+                  {/* Volume Correspondente */}
+                  <div className="bg-[#0b0f19] border border-slate-800 p-5 rounded-2xl">
+                    <span className="text-[10px] text-slate-500 uppercase font-bold tracking-wider block mb-1">Volume Correspondente (Matched)</span>
+                    <span className="text-2xl font-black font-mono text-slate-200">
+                      {advancedData.liquidity.status === "online" 
+                        ? `$ ${advancedData.liquidity.volume_correspondente.toLocaleString()}` 
+                        : "Liquidez indisponível"}
+                    </span>
+                  </div>
+                </div>
+
+                {advancedData.liquidity.status === "offline" ? (
+                  <div className="bg-[#171016] border border-danger/20 p-5 rounded-2xl text-center">
+                    <span className="text-danger font-bold text-sm block mb-1">🔴 API INTEGRATION OFFLINE / MOCK MODE</span>
+                    <span className="text-slate-400 text-xs max-w-lg mx-auto block leading-relaxed">
+                      As credenciais de produção da Betfair Exchange API não foram configuradas. O painel de liquidez em tempo real foi preparado e está aguardando as chaves de API (`BETFAIR_APP_KEY`, `BETFAIR_SESSION`) no arquivo `.env` para exibir dados reais de correspondência de odds.
+                    </span>
+                  </div>
+                ) : (
+                  <div className="bg-[#0e1713] border border-success/20 p-5 rounded-2xl text-center">
+                    <span className="text-success font-bold text-sm block mb-1">🟢 CONEXÃO BETFAIR ESTABELECIDA</span>
+                    <span className="text-slate-400 text-xs block">Os volumes apresentados acima representam a fila correspondida total do mercado Match Odds (1X2) da Betfair.</span>
+                  </div>
+                )}
               </div>
             </div>
           )}

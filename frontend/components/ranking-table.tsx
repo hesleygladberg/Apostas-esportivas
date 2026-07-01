@@ -44,15 +44,15 @@ export default function RankingTable({
   const getMetricValue = (m: MatchRankingData) => {
     switch (metricType) {
       case "edge":
-        return `+${(m.edge_val * 100).toFixed(1)}% Edge`;
+        return `${m.edge_val >= 0 ? "+" : ""}${(m.edge_val * 100).toFixed(1)}% Edge`;
       case "ev":
-        return `+${(m.ev_val * 100).toFixed(1)}% EV`;
+        return `${m.ev_val >= 0 ? "+" : ""}${(m.ev_val * 100).toFixed(1)}% EV`;
       case "confidence":
         return `${m.confidence_score} Conf.`;
       case "back":
-        return `+${(m.edge_val * 100).toFixed(1)}% (${m.recommendation})`;
+        return `${m.edge_val >= 0 ? "+" : ""}${(m.edge_val * 100).toFixed(1)}% (${m.recommendation})`;
       case "lay":
-        return `+${(m.edge_val * 100).toFixed(1)}% (${m.recommendation})`;
+        return `${m.edge_val >= 0 ? "+" : ""}${(m.edge_val * 100).toFixed(1)}% (${m.recommendation})`;
       default:
         return "";
     }
