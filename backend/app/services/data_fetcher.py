@@ -326,25 +326,47 @@ def fetch_real_api_data(db: Session):
     db.query(Match).filter(Match.status == "scheduled").delete()
     db.commit()
 
-    # 2. Buscar partidas da Football-Data API para o dia de hoje
+    # 2. Buscar partidas da Football-Data API (passadas dos últimos 10 dias e futuras dos próximos 3 dias)
     # Ligas e copas suportadas no plano gratuito da Football-Data.org
     supported_competitions = ["PL", "PD", "SA", "BL1", "FL1", "CL", "BSA", "DED", "PPL", "WC", "EC", "CLI"]
     
+    from datetime import date
+    
+    past_matches_list = []
     try:
-        from datetime import date
+        past_str = (date.today() - timedelta(days=10)).isoformat()
+        yesterday_str = (date.today() - timedelta(days=1)).isoformat()
+        url_past = f"https://api.football-data.org/v4/matches?dateFrom={past_str}&dateTo={yesterday_str}"
+        response_past = requests.get(url_past, headers=headers, timeout=12)
+        if response_past.status_code == 200:
+            past_matches_list = response_past.json().get("matches", [])
+            print(f"Buscados {len(past_matches_list)} jogos históricos dos últimos 10 dias.")
+    except Exception as e:
+        print(f"Erro ao buscar histórico: {e}")
+        
+    upcoming_matches_list = []
+    try:
         today_str = date.today().isoformat()
         three_days_later_str = (date.today() + timedelta(days=3)).isoformat()
-        url = f"https://api.football-data.org/v4/matches?dateFrom={today_str}&dateTo={three_days_later_str}"
-        response = requests.get(url, headers=headers, timeout=12)
-        if response.status_code != 200:
-            raise Exception(f"API Football-Data retornou status {response.status_code}. Resposta: {response.text}")
-            
-        data = response.json()
-        matches_list = data.get("matches", [])
+        url_upcoming = f"https://api.football-data.org/v4/matches?dateFrom={today_str}&dateTo={three_days_later_str}"
+        response_upcoming = requests.get(url_upcoming, headers=headers, timeout=12)
+        if response_upcoming.status_code == 200:
+            upcoming_matches_list = response_upcoming.json().get("matches", [])
+            print(f"Buscados {len(upcoming_matches_list)} jogos agendados.")
+    except Exception as e:
+        print(f"Erro ao buscar agendados: {e}")
+        raise e
         
+    matches_list = past_matches_list + upcoming_matches_list
+    
+    try:
         for m_data in matches_list:
             comp_code = m_data.get("competition", {}).get("code")
             if comp_code not in supported_competitions:
+                continue
+                
+            status_raw = m_data.get("status")
+            if status_raw not in ["FINISHED", "AWARDED", "TIMED", "SCHEDULED"]:
                 continue
             
             # Obter ou criar time da casa
@@ -370,12 +392,25 @@ def fetch_real_api_data(db: Session):
             match_date = datetime.fromisoformat(date_str)
             
             # Determinar status
-            status_raw = m_data.get("status")
             status = "finished" if status_raw in ["FINISHED", "AWARDED"] else "scheduled"
             
             home_score = m_data.get("score", {}).get("fullTime", {}).get("home")
             away_score = m_data.get("score", {}).get("fullTime", {}).get("away")
             
+            # Verificar se já existe a partida para evitar duplicações
+            existing_match = db.query(Match).filter(
+                Match.home_team_id == home_team.id,
+                Match.away_team_id == away_team.id,
+                Match.date == match_date
+            ).first()
+            
+            if existing_match:
+                if status == "finished":
+                    existing_match.status = "finished"
+                    existing_match.home_score = home_score
+                    existing_match.away_score = away_score
+                continue
+                
             match_obj = Match(
                 date=match_date,
                 status=status,
@@ -389,7 +424,7 @@ def fetch_real_api_data(db: Session):
             )
             db.add(match_obj)
         db.commit()
-        print("Jogos reais do dia carregados com sucesso da Football-Data API.")
+        print("Jogos reais do dia e histórico de 10 dias carregados com sucesso da Football-Data API.")
     except Exception as e:
         print(f"Erro ao buscar partidas da Football-Data API: {e}")
         raise e

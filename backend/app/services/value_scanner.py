@@ -78,7 +78,7 @@ def scan_match_value(match: Match, db: Session) -> Tuple[str, float, float, int,
     # Critérios de LAY: Favoritos supervalorizados pelo mercado (Odd baixa com Edge Back muito negativo)
     
     # Avaliar Mandante
-    if edge_h >= 0.04 and oh >= 1.35 and conf_score >= 45:
+    if edge_h >= 0.04 and oh >= 1.35 and conf_score >= 25:
         rec = "BACK MANDANTE"
         best_edge = edge_h
         justification = (
@@ -86,7 +86,7 @@ def scan_match_value(match: Match, db: Session) -> Tuple[str, float, float, int,
             f"{match.fair_home:.2f}, contra {oh:.2f} oferecida pelo mercado. Edge de {edge_h:.1%}."
         )
     # Avaliar Visitante
-    elif edge_a >= 0.04 and oa >= 1.40 and conf_score >= 45:
+    elif edge_a >= 0.04 and oa >= 1.40 and conf_score >= 25:
         rec = "BACK VISITANTE"
         best_edge = edge_a
         justification = (
@@ -94,7 +94,7 @@ def scan_match_value(match: Match, db: Session) -> Tuple[str, float, float, int,
             f"{match.fair_away:.2f}, contra {oa:.2f} oferecida pelo mercado. Edge de {edge_a:.1%}."
         )
     # Avaliar Empate
-    elif edge_d >= 0.05 and od >= 2.80 and conf_score >= 45:
+    elif edge_d >= 0.05 and od >= 2.80 and conf_score >= 25:
         rec = "BACK EMPATE"
         best_edge = edge_d
         justification = (
@@ -102,7 +102,7 @@ def scan_match_value(match: Match, db: Session) -> Tuple[str, float, float, int,
             f"{match.fair_draw:.2f}, contra {od:.2f} oferecida pelo mercado. Edge de {edge_d:.1%}."
         )
     # Avaliar LAY ao favorito da Casa (Mercado supervalorizando o mandante)
-    elif edge_h <= -0.06 and oh <= 2.20 and conf_score >= 45:
+    elif edge_h <= -0.06 and oh <= 2.20 and conf_score >= 25:
         rec = "LAY MANDANTE"
         # O Edge do LAY é o inverso do Edge do BACK
         best_edge = abs(edge_h)
@@ -112,7 +112,7 @@ def scan_match_value(match: Match, db: Session) -> Tuple[str, float, float, int,
             f"Excelente oportunidade para Lay com valor estatístico."
         )
     # Avaliar LAY ao favorito Visitante (Mercado supervalorizando o visitante)
-    elif edge_a <= -0.06 and oa <= 2.20 and conf_score >= 45:
+    elif edge_a <= -0.06 and oa <= 2.20 and conf_score >= 25:
         rec = "LAY VISITANTE"
         best_edge = abs(edge_a)
         justification = (
