@@ -397,6 +397,29 @@ def debug_odds_api():
         return {"error": str(e)}
 
 
+@router.get("/debug-history")
+def debug_history(db: Session = Depends(get_db)):
+    matches = db.query(Match).all()
+    summary = []
+    for m in matches:
+        home_team = db.query(Team).filter(Team.id == m.home_team_id).first()
+        away_team = db.query(Team).filter(Team.id == m.away_team_id).first()
+        summary.append({
+            "id": m.id,
+            "date": m.date.isoformat(),
+            "status": m.status,
+            "league": m.league,
+            "home": home_team.name if home_team else "Desconhecido",
+            "away": away_team.name if away_team else "Desconhecido",
+            "home_score": m.home_score,
+            "away_score": m.away_score
+        })
+    return summary
+
+
+
+
+
 @router.post("/test-sync")
 def test_sync(db: Session = Depends(get_db)):
     logs = []
