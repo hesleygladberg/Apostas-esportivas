@@ -43,6 +43,7 @@ export default function Dashboard() {
   const [loading, setLoading] = useState(true);
   const [syncing, setSyncing] = useState(false);
   const [activeMatchId, setActiveMatchId] = useState<number | null>(null);
+  const [isMockMode, setIsMockMode] = useState(false);
   
   // URL da API
   const [apiUrl, setApiUrl] = useState("http://localhost:8000");
@@ -64,6 +65,16 @@ export default function Dashboard() {
     if (showLoader) setLoading(true);
     const envApiUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
     setApiUrl(envApiUrl);
+
+    // Verificar se o backend está em modo mock
+    fetch(envApiUrl)
+      .then((res) => res.json())
+      .then((data) => {
+        if (data && typeof data.mock_mode === "boolean") {
+          setIsMockMode(data.mock_mode);
+        }
+      })
+      .catch((err) => console.error("Erro ao ler status do servidor:", err));
 
     fetch(`${envApiUrl}/api/matches/`)
       .then((res) => res.json())
@@ -177,6 +188,21 @@ export default function Dashboard() {
           <span>{syncing ? "Sincronizando..." : "Sincronizar Odds & Jogos"}</span>
         </button>
       </div>
+
+      {/* Banner de Modo Mock */}
+      {isMockMode && (
+        <div className="bg-amber-500/10 border border-amber-500/30 rounded-2xl p-4 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 shadow-lg shadow-amber-500/5">
+          <div className="flex items-start gap-3">
+            <span className="text-2xl mt-0.5 sm:mt-0">⚠️</span>
+            <div>
+              <h4 className="text-xs font-black text-amber-400 uppercase tracking-wider">Modo de Simulação Ativo (Fictício)</h4>
+              <p className="text-xs text-slate-350 mt-1 leading-relaxed">
+                Os jogos exibidos abaixo são simulados e gerados aleatoriamente pelo sistema para demonstração técnica. Para visualizar **partidas reais do calendário oficial**, configure suas chaves da <span className="font-semibold text-amber-400">Football-Data API</span> e <span className="font-semibold text-amber-400">The Odds API</span> no arquivo <code className="bg-slate-950 px-1.5 py-0.5 rounded border border-slate-800 text-[10px]">.env</code> e desative o modo simulador mudando para <code className="bg-slate-950 px-1.5 py-0.5 rounded border border-slate-800 text-[10px]">MOCK_MODE=false</code>.
+              </p>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Cards de Resumo */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
