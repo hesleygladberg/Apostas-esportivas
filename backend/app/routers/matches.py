@@ -314,6 +314,50 @@ def get_debug_info(db: Session = Depends(get_db)):
         }
 
 
+@router.get("/debug-api")
+def debug_external_api():
+    import requests
+    from app.config import settings
+    
+    if not settings.FOOTBALL_DATA_API_KEY:
+        return {"error": "FOOTBALL_DATA_API_KEY não configurada em settings"}
+        
+    headers = {"X-Auth-Token": settings.FOOTBALL_DATA_API_KEY}
+    
+    try:
+        url = "https://api.football-data.org/v4/matches"
+        response = requests.get(url, headers=headers, timeout=10)
+        if response.status_code != 200:
+            return {
+                "status_code": response.status_code,
+                "response": response.text
+            }
+        
+        data = response.json()
+        matches = data.get("matches", [])
+        
+        summary = []
+        for m in matches:
+            summary.append({
+                "utcDate": m.get("utcDate"),
+                "status": m.get("status"),
+                "competition": {
+                    "name": m.get("competition", {}).get("name"),
+                    "code": m.get("competition", {}).get("code")
+                },
+                "homeTeam": m.get("homeTeam", {}).get("name"),
+                "awayTeam": m.get("awayTeam", {}).get("name")
+            })
+            
+        return {
+            "status_code": response.status_code,
+            "total_matches_returned": len(matches),
+            "matches": summary
+        }
+    except Exception as e:
+        return {"error": str(e)}
+
+
 @router.get("/{match_id}", response_model=MatchDetailResponse)
 def get_match_by_id(match_id: int, db: Session = Depends(get_db)):
     """

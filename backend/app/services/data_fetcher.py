@@ -285,8 +285,8 @@ def fetch_real_api_data(db: Session):
     db.commit()
 
     # 2. Buscar partidas da Football-Data API para o dia de hoje
-    # Ligas suportadas no plano gratuito da Football-Data.org
-    supported_competitions = ["PL", "PD", "SA", "BL1", "FL1", "CL", "BSA", "DED", "PPL"]
+    # Ligas e copas suportadas no plano gratuito da Football-Data.org
+    supported_competitions = ["PL", "PD", "SA", "BL1", "FL1", "CL", "BSA", "DED", "PPL", "WC", "EC", "CLI"]
     
     try:
         url = "https://api.football-data.org/v4/matches"
