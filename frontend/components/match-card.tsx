@@ -85,7 +85,7 @@ export default function MatchCard({ match, onOpenAnalysis }: MatchCardProps) {
         </span>
         <div className="flex items-center space-x-1 font-mono text-[10px] text-slate-400">
           <Clock className="w-3.5 h-3.5 text-accent" />
-          <span>{formattedDate} às {formattedTime} (Brasília)</span>
+          <span>{formattedDate} - {formattedTime}</span>
         </div>
       </div>
 
@@ -93,30 +93,45 @@ export default function MatchCard({ match, onOpenAnalysis }: MatchCardProps) {
       <div className="space-y-3 mb-4">
         <div className="flex justify-between items-center">
           <span className="text-base font-bold text-slate-100">{match.home_team.name}</span>
-          <span className="text-[10px] text-slate-400 font-bold bg-slate-900/80 px-2 py-0.5 rounded-md border border-border/40 uppercase tracking-wider">Casa</span>
+          <span className="text-[9px] text-slate-400 font-bold bg-slate-900/80 px-2 py-0.5 rounded-md border border-border/40 uppercase tracking-wider">Casa</span>
         </div>
         <div className="flex justify-between items-center">
           <span className="text-base font-bold text-slate-100">{match.away_team.name}</span>
-          <span className="text-[10px] text-slate-400 font-bold bg-slate-900/80 px-2 py-0.5 rounded-md border border-border/40 uppercase tracking-wider">Visitante</span>
+          <span className="text-[9px] text-slate-400 font-bold bg-slate-900/80 px-2 py-0.5 rounded-md border border-border/40 uppercase tracking-wider">Visitante</span>
         </div>
       </div>
 
-      {/* Grid de Comparação de Odds */}
-      <div className="grid grid-cols-3 gap-2 bg-slate-900/50 border border-slate-800/80 rounded-xl p-3 mb-4 text-center">
+      {/* Grid de Comparação de Odds (Layout Estilo Betfair/Bet365) */}
+      <div className="grid grid-cols-3 gap-2.5 bg-slate-950/40 border border-slate-800/80 rounded-2xl p-2.5 mb-4 text-center">
         <div>
-          <div className="text-[10px] font-bold text-slate-500 uppercase tracking-wide">Casa (1)</div>
-          <div className="text-xs font-mono font-medium text-slate-400 mt-1">Merc: <span className="text-slate-200 font-semibold">{match.odd_home?.toFixed(2)}</span></div>
-          <div className="text-xs font-mono font-medium text-accent mt-0.5">Justa: <span className="font-bold">{match.fair_home?.toFixed(2)}</span></div>
+          <div className="text-[9px] font-bold text-slate-500 uppercase tracking-wider mb-1">Mandante (1)</div>
+          <div className="bg-slate-900/85 border border-slate-850 rounded-xl py-1.5 px-2">
+            <div className="text-[9px] text-slate-500 font-semibold mb-0.5">Mercado</div>
+            <div className="text-xs font-mono font-bold text-slate-200">{match.odd_home?.toFixed(2)}</div>
+          </div>
+          <div className="text-[9px] text-accent font-semibold mt-1">
+            Justa: <span className="font-bold font-mono text-slate-300">{match.fair_home?.toFixed(2)}</span>
+          </div>
         </div>
-        <div className="border-x border-slate-800/80">
-          <div className="text-[10px] font-bold text-slate-500 uppercase tracking-wide">Empate (X)</div>
-          <div className="text-xs font-mono font-medium text-slate-400 mt-1">Merc: <span className="text-slate-200 font-semibold">{match.odd_draw?.toFixed(2)}</span></div>
-          <div className="text-xs font-mono font-medium text-accent mt-0.5">Justa: <span className="font-bold">{match.fair_draw?.toFixed(2)}</span></div>
+        <div className="border-x border-slate-800/60 px-1">
+          <div className="text-[9px] font-bold text-slate-500 uppercase tracking-wider mb-1">Empate (X)</div>
+          <div className="bg-slate-900/85 border border-slate-850 rounded-xl py-1.5 px-2">
+            <div className="text-[9px] text-slate-500 font-semibold mb-0.5">Mercado</div>
+            <div className="text-xs font-mono font-bold text-slate-200">{match.odd_draw?.toFixed(2)}</div>
+          </div>
+          <div className="text-[9px] text-accent font-semibold mt-1">
+            Justa: <span className="font-bold font-mono text-slate-300">{match.fair_draw?.toFixed(2)}</span>
+          </div>
         </div>
         <div>
-          <div className="text-[10px] font-bold text-slate-500 uppercase tracking-wide">Visit (2)</div>
-          <div className="text-xs font-mono font-medium text-slate-400 mt-1">Merc: <span className="text-slate-200 font-semibold">{match.odd_away?.toFixed(2)}</span></div>
-          <div className="text-xs font-mono font-medium text-accent mt-0.5">Justa: <span className="font-bold">{match.fair_away?.toFixed(2)}</span></div>
+          <div className="text-[9px] font-bold text-slate-500 uppercase tracking-wider mb-1">Visitante (2)</div>
+          <div className="bg-slate-900/85 border border-slate-850 rounded-xl py-1.5 px-2">
+            <div className="text-[9px] text-slate-500 font-semibold mb-0.5">Mercado</div>
+            <div className="text-xs font-mono font-bold text-slate-200">{match.odd_away?.toFixed(2)}</div>
+          </div>
+          <div className="text-[9px] text-accent font-semibold mt-1">
+            Justa: <span className="font-bold font-mono text-slate-300">{match.fair_away?.toFixed(2)}</span>
+          </div>
         </div>
       </div>
 

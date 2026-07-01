@@ -9,7 +9,7 @@ def scan_match_value(match: Match, db: Session) -> Tuple[str, float, float, int,
     Retorna (recommendation, edge, ev, confidence, justification)
     """
     if not match.prob_home or not match.prob_draw or not match.prob_away:
-        return "SEM VALOR", 0.0, 0.0, 0, "Sem dados probabilísticos calculados."
+        return "SEM ENTRADA", 0.0, 0.0, 0, "Sem dados probabilísticos calculados."
 
     # 1. Odds de mercado
     oh = match.odd_home if match.odd_home else 1.0
@@ -67,7 +67,7 @@ def scan_match_value(match: Match, db: Session) -> Tuple[str, float, float, int,
         conf_score += 5
 
     # 5. Algoritmo de Recomendação e Justificativa
-    rec = "SEM VALOR"
+    rec = "SEM ENTRADA"
     best_edge = 0.0
     justification = ""
 
@@ -76,7 +76,7 @@ def scan_match_value(match: Match, db: Session) -> Tuple[str, float, float, int,
     
     # Avaliar Mandante
     if edge_h >= 0.04 and oh >= 1.35 and conf_score >= 45:
-        rec = "BACK HOME"
+        rec = "BACK MANDANTE"
         best_edge = edge_h
         justification = (
             f"Valor encontrado no Mandante. Probabilidade do modelo de {ph:.1%} projeta odd justa de "
@@ -84,7 +84,7 @@ def scan_match_value(match: Match, db: Session) -> Tuple[str, float, float, int,
         )
     # Avaliar Visitante
     elif edge_a >= 0.04 and oa >= 1.40 and conf_score >= 45:
-        rec = "BACK AWAY"
+        rec = "BACK VISITANTE"
         best_edge = edge_a
         justification = (
             f"Valor encontrado no Visitante. Probabilidade do modelo de {pa:.1%} projeta odd justa de "
@@ -92,7 +92,7 @@ def scan_match_value(match: Match, db: Session) -> Tuple[str, float, float, int,
         )
     # Avaliar Empate
     elif edge_d >= 0.05 and od >= 2.80 and conf_score >= 45:
-        rec = "BACK DRAW"
+        rec = "BACK EMPATE"
         best_edge = edge_d
         justification = (
             f"Valor encontrado no Empate. Probabilidade do modelo de {pd:.1%} projeta odd justa de "
@@ -100,7 +100,7 @@ def scan_match_value(match: Match, db: Session) -> Tuple[str, float, float, int,
         )
     # Avaliar LAY ao favorito da Casa (Mercado supervalorizando o mandante)
     elif edge_h <= -0.06 and oh <= 2.20 and conf_score >= 45:
-        rec = "LAY HOME"
+        rec = "LAY MANDANTE"
         # O Edge do LAY é o inverso do Edge do BACK
         best_edge = abs(edge_h)
         justification = (
@@ -110,7 +110,7 @@ def scan_match_value(match: Match, db: Session) -> Tuple[str, float, float, int,
         )
     # Avaliar LAY ao favorito Visitante (Mercado supervalorizando o visitante)
     elif edge_a <= -0.06 and oa <= 2.20 and conf_score >= 45:
-        rec = "LAY AWAY"
+        rec = "LAY VISITANTE"
         best_edge = abs(edge_a)
         justification = (
             f"Visitante supervalorizado. O mercado oferece odd de {oa:.2f} (probabilidade implícita de {1/oa:.1%}), "

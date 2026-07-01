@@ -135,11 +135,11 @@ export default function AnalysisModal({ matchId, onClose }: AnalysisModalProps) 
   const calculateKelly = () => {
     if (match.edge_val <= 0) return 0;
     let odd = 1.0;
-    if (match.recommendation === "BACK HOME") odd = match.odd_home || 1.0;
-    else if (match.recommendation === "BACK AWAY") odd = match.odd_away || 1.0;
-    else if (match.recommendation === "BACK DRAW") odd = match.odd_draw || 1.0;
-    else if (match.recommendation === "LAY HOME") odd = match.odd_home || 1.0;
-    else if (match.recommendation === "LAY AWAY") odd = match.odd_away || 1.0;
+    if (match.recommendation === "BACK MANDANTE") odd = match.odd_home || 1.0;
+    else if (match.recommendation === "BACK VISITANTE") odd = match.odd_away || 1.0;
+    else if (match.recommendation === "BACK EMPATE") odd = match.odd_draw || 1.0;
+    else if (match.recommendation === "LAY MANDANTE") odd = match.odd_home || 1.0;
+    else if (match.recommendation === "LAY VISITANTE") odd = match.odd_away || 1.0;
 
     if (odd <= 1) return 0;
     
