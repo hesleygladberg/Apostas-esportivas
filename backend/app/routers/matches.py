@@ -358,6 +358,45 @@ def debug_external_api():
         return {"error": str(e)}
 
 
+@router.get("/debug-odds")
+def debug_odds_api():
+    import requests
+    from app.config import settings
+    
+    if not settings.THE_ODDS_API_KEY:
+        return {"error": "THE_ODDS_API_KEY não configurada"}
+        
+    try:
+        # Tenta com 'soccer'
+        url_soccer = f"https://api.the-odds-api.com/v4/sports/soccer/odds/?apiKey={settings.THE_ODDS_API_KEY}&regions=eu&markets=h2h"
+        res_soccer = requests.get(url_soccer, timeout=10)
+        
+        # Puxa a lista de todos os esportes ativos para ver se tem a copa
+        url_sports = f"https://api.the-odds-api.com/v4/sports/?apiKey={settings.THE_ODDS_API_KEY}"
+        res_sports = requests.get(url_sports, timeout=10)
+        
+        sports_data = res_sports.json() if res_sports.status_code == 200 else []
+        active_soccer_keys = []
+        if isinstance(sports_data, list):
+            active_soccer_keys = [s["key"] for s in sports_data if isinstance(s, dict) and s.get("group") == "Soccer"]
+        
+        soccer_res = []
+        if res_soccer.status_code == 200:
+            soccer_res = res_soccer.json()
+            if isinstance(soccer_res, list):
+                soccer_res = soccer_res[:5]
+        else:
+            soccer_res = res_soccer.text
+
+        return {
+            "soccer_status": res_soccer.status_code,
+            "soccer_response_preview": soccer_res,
+            "active_soccer_keys": active_soccer_keys
+        }
+    except Exception as e:
+        return {"error": str(e)}
+
+
 @router.post("/test-sync")
 def test_sync(db: Session = Depends(get_db)):
     logs = []
