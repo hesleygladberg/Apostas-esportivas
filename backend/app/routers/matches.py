@@ -3,7 +3,7 @@ from sqlalchemy.orm import Session
 from sqlalchemy import and_, or_, desc
 from app.database import get_db
 from app.models import Match, Team
-from app.schemas import MatchDetailResponse, MatchSimpleResponse, MatchStatsAnalysis
+from app.schemas import MatchDetailResponse, MatchSimpleResponse, MatchStatsAnalysis, RankingsResponse
 from app.services.data_fetcher import sync_matches_and_run_model
 from app.services.stats_compiler import compile_match_analysis
 from app.services.poisson_model import calculate_match_probabilities
@@ -57,7 +57,7 @@ def sync_data(db: Session = Depends(get_db)):
         )
 
 
-@router.get("/rankings")
+@router.get("/rankings", response_model=RankingsResponse)
 def get_rankings(db: Session = Depends(get_db)):
     """
     Gera automaticamente os rankings diários (Top 10):

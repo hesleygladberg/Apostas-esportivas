@@ -111,3 +111,14 @@ class ChatQuery(BaseModel):
 
 class ChatResponse(BaseModel):
     reply: str
+
+# --- RANKINGS SCHEMAS ---
+class RankingsResponse(BaseModel):
+    top_backs: List[MatchDetailResponse]
+    top_lays: List[MatchDetailResponse]
+    top_edges: List[MatchDetailResponse]
+    top_ev: List[MatchDetailResponse]
+    top_confidence: List[MatchDetailResponse]
+
+    class Config:
+        from_attributes = True
