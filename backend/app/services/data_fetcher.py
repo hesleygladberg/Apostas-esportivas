@@ -50,6 +50,48 @@ MOCK_LEAGUES = {
     }
 }
 
+
+def normalize_name(name: str) -> str:
+    if not name:
+        return ""
+    name = name.lower()
+    # Mapeamentos diretos comuns
+    mappings = {
+        "usa": "united states",
+        "us": "united states",
+        "uae": "united arab emirates",
+        "dr congo": "congo dr",
+        "korea republic": "south korea",
+        "republic of korea": "south korea",
+    }
+    for k, v in mappings.items():
+        if name == k:
+            return v
+    # Substituições de caracteres e conectivos
+    name = name.replace("&", " ")
+    name = name.replace(" and ", " ")
+    name = name.replace("-", " ")
+    # Remover pontuações
+    for char in [".", ",", "'", '"']:
+        name = name.replace(char, "")
+    # Simplificar espaços
+    return " ".join(name.split())
+
+
+def find_team_in_db(name: str, teams_list: list) -> Team:
+    norm_target = normalize_name(name)
+    # 1. Tentar correspondência exata pós-normalização
+    for t in teams_list:
+        if normalize_name(t.name) == norm_target:
+            return t
+    # 2. Tentar contido em (substring)
+    for t in teams_list:
+        norm_db = normalize_name(t.name)
+        if norm_target in norm_db or norm_db in norm_target:
+            return t
+    return None
+
+
 def generate_mock_score(att_home: float, def_away: float, att_away: float, def_home: float) -> Tuple[int, int]:
     """
     Simula um placar real baseado no poder de ataque/defesa usando sorteio de Poisson.
@@ -358,12 +400,14 @@ def fetch_real_api_data(db: Session):
             
         odds_data = odds_response.json()
         
+        all_teams = db.query(Team).all()
+        
         for event in odds_data:
             home_name = event["home_team"]
             away_name = event["away_team"]
             
-            db_home = db.query(Team).filter(Team.name.like(f"%{home_name}%")).first()
-            db_away = db.query(Team).filter(Team.name.like(f"%{away_name}%")).first()
+            db_home = find_team_in_db(home_name, all_teams)
+            db_away = find_team_in_db(away_name, all_teams)
             
             if not db_home or not db_away:
                 continue
