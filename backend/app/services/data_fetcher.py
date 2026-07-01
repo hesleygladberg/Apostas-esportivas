@@ -331,7 +331,10 @@ def fetch_real_api_data(db: Session):
     supported_competitions = ["PL", "PD", "SA", "BL1", "FL1", "CL", "BSA", "DED", "PPL", "WC", "EC", "CLI"]
     
     try:
-        url = "https://api.football-data.org/v4/matches"
+        from datetime import date
+        today_str = date.today().isoformat()
+        three_days_later_str = (date.today() + timedelta(days=3)).isoformat()
+        url = f"https://api.football-data.org/v4/matches?dateFrom={today_str}&dateTo={three_days_later_str}"
         response = requests.get(url, headers=headers, timeout=12)
         if response.status_code != 200:
             raise Exception(f"API Football-Data retornou status {response.status_code}. Resposta: {response.text}")

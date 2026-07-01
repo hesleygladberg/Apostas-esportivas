@@ -419,7 +419,10 @@ def test_sync(db: Session = Depends(get_db)):
         logs.append("Deleted scheduled matches")
         
         import requests
-        url = "https://api.football-data.org/v4/matches"
+        from datetime import date, timedelta
+        today_str = date.today().isoformat()
+        three_days_later_str = (date.today() + timedelta(days=3)).isoformat()
+        url = f"https://api.football-data.org/v4/matches?dateFrom={today_str}&dateTo={three_days_later_str}"
         logs.append(f"Calling Football-Data API: {url}")
         res = requests.get(url, headers=headers, timeout=12)
         logs.append(f"Football-Data API response status: {res.status_code}")
