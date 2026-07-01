@@ -214,7 +214,7 @@ export default function AnalysisModal({ matchId, onClose }: AnalysisModalProps) 
             <div className="flex items-center space-x-2 text-xs text-slate-400 mb-1">
               <span>⚽ {match.league}</span>
               <span>•</span>
-              <span>{new Date(match.date).toLocaleDateString("pt-BR")}</span>
+              <span suppressHydrationWarning>{new Date(match.date).toLocaleDateString("pt-BR")}</span>
             </div>
             <h1 className="text-xl sm:text-2xl font-black text-slate-100 tracking-tight">
               {match.home_team.name} <span className="text-accent">x</span> {match.away_team.name}

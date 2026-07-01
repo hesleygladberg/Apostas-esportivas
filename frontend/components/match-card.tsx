@@ -132,7 +132,7 @@ export default function MatchCard({ match, onOpenAnalysis }: MatchCardProps) {
         </span>
         <div className="flex items-center space-x-1 font-mono text-[10px] text-slate-400">
           <Clock className="w-3.5 h-3.5 text-accent" />
-          <span>{formattedDate} - {formattedTime}</span>
+          <span suppressHydrationWarning>{formattedDate} - {formattedTime}</span>
         </div>
       </div>
 
