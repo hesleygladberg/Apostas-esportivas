@@ -276,8 +276,7 @@ def fetch_real_api_data(db: Session):
     Carrega jogos reais das ligas principais suportadas pela API de futebol e atualiza odds.
     """
     if not settings.THE_ODDS_API_KEY or not settings.FOOTBALL_DATA_API_KEY:
-        print("Aviso: Chaves de API não configuradas em .env. Rodando no modo de segurança.")
-        return
+        raise Exception("Erro: Chaves de API não configuradas em .env (MOCK_MODE=false exige THE_ODDS_API_KEY e FOOTBALL_DATA_API_KEY).")
         
     headers = {"X-Auth-Token": settings.FOOTBALL_DATA_API_KEY}
     
@@ -292,108 +291,114 @@ def fetch_real_api_data(db: Session):
     try:
         url = "https://api.football-data.org/v4/matches"
         response = requests.get(url, headers=headers, timeout=12)
-        if response.status_code == 200:
-            data = response.json()
-            matches_list = data.get("matches", [])
+        if response.status_code != 200:
+            raise Exception(f"API Football-Data retornou status {response.status_code}. Resposta: {response.text}")
             
-            for m_data in matches_list:
-                comp_code = m_data.get("competition", {}).get("code")
-                if comp_code not in supported_competitions:
-                    continue
+        data = response.json()
+        matches_list = data.get("matches", [])
+        
+        for m_data in matches_list:
+            comp_code = m_data.get("competition", {}).get("code")
+            if comp_code not in supported_competitions:
+                continue
+            
+            # Obter ou criar time da casa
+            home_name = m_data["homeTeam"]["name"]
+            away_name = m_data["awayTeam"]["name"]
+            league_name = m_data["competition"]["name"]
+            country = m_data.get("area", {}).get("name", "Europa")
+            
+            home_team = db.query(Team).filter(Team.name == home_name).first()
+            if not home_team:
+                home_team = Team(name=home_name, league=league_name, country=country)
+                db.add(home_team)
+                db.flush()
                 
-                # Obter ou criar time da casa
-                home_name = m_data["homeTeam"]["name"]
-                away_name = m_data["awayTeam"]["name"]
-                league_name = m_data["competition"]["name"]
-                country = m_data.get("area", {}).get("name", "Europa")
-                
-                home_team = db.query(Team).filter(Team.name == home_name).first()
-                if not home_team:
-                    home_team = Team(name=home_name, league=league_name, country=country)
-                    db.add(home_team)
-                    db.flush()
-                    
-                away_team = db.query(Team).filter(Team.name == away_name).first()
-                if not away_team:
-                    away_team = Team(name=away_name, league=league_name, country=country)
-                    db.add(away_team)
-                    db.flush()
-                
-                # Parse da data utc
-                date_str = m_data["utcDate"].replace("Z", "")
-                match_date = datetime.fromisoformat(date_str)
-                
-                # Determinar status
-                status_raw = m_data.get("status")
-                status = "finished" if status_raw in ["FINISHED", "AWARDED"] else "scheduled"
-                
-                home_score = m_data.get("score", {}).get("fullTime", {}).get("home")
-                away_score = m_data.get("score", {}).get("fullTime", {}).get("away")
-                
-                match_obj = Match(
-                    date=match_date,
-                    status=status,
-                    league=league_name,
-                    country=country,
-                    home_team_id=home_team.id,
-                    away_team_id=away_team.id,
-                    home_score=home_score,
-                    away_score=away_score,
-                    odd_volume=random.randint(15000, 100000)
-                )
-                db.add(match_obj)
-            db.commit()
-            print("Jogos reais do dia carregados com sucesso da Football-Data API.")
+            away_team = db.query(Team).filter(Team.name == away_name).first()
+            if not away_team:
+                away_team = Team(name=away_name, league=league_name, country=country)
+                db.add(away_team)
+                db.flush()
+            
+            # Parse da data utc
+            date_str = m_data["utcDate"].replace("Z", "")
+            match_date = datetime.fromisoformat(date_str)
+            
+            # Determinar status
+            status_raw = m_data.get("status")
+            status = "finished" if status_raw in ["FINISHED", "AWARDED"] else "scheduled"
+            
+            home_score = m_data.get("score", {}).get("fullTime", {}).get("home")
+            away_score = m_data.get("score", {}).get("fullTime", {}).get("away")
+            
+            match_obj = Match(
+                date=match_date,
+                status=status,
+                league=league_name,
+                country=country,
+                home_team_id=home_team.id,
+                away_team_id=away_team.id,
+                home_score=home_score,
+                away_score=away_score,
+                odd_volume=random.randint(15000, 100000)
+            )
+            db.add(match_obj)
+        db.commit()
+        print("Jogos reais do dia carregados com sucesso da Football-Data API.")
     except Exception as e:
         print(f"Erro ao buscar partidas da Football-Data API: {e}")
+        raise e
         
     # 3. Carregar odds atualizadas da The Odds API e associar aos jogos
     try:
         odds_url = f"https://api.the-odds-api.com/v4/sports/soccer/odds/?apiKey={settings.THE_ODDS_API_KEY}&regions=eu&markets=h2h"
         odds_response = requests.get(odds_url, timeout=12)
-        if odds_response.status_code == 200:
-            odds_data = odds_response.json()
+        if odds_response.status_code != 200:
+            raise Exception(f"The Odds API retornou status {odds_response.status_code}. Resposta: {odds_response.text}")
             
-            for event in odds_data:
-                home_name = event["home_team"]
-                away_name = event["away_team"]
+        odds_data = odds_response.json()
+        
+        for event in odds_data:
+            home_name = event["home_team"]
+            away_name = event["away_team"]
+            
+            db_home = db.query(Team).filter(Team.name.like(f"%{home_name}%")).first()
+            db_away = db.query(Team).filter(Team.name.like(f"%{away_name}%")).first()
+            
+            if not db_home or not db_away:
+                continue
+            
+            match_obj = db.query(Match).filter(
+                Match.home_team_id == db_home.id,
+                Match.away_team_id == db_away.id,
+                Match.status == "scheduled"
+            ).first()
+            
+            if not match_obj:
+                continue
+            
+            bookmaker = None
+            for b in event.get("bookmakers", []):
+                if b["key"] == "bet365":
+                    bookmaker = b
+                    break
+            if not bookmaker and event.get("bookmakers", []):
+                bookmaker = event["bookmakers"][0]
                 
-                db_home = db.query(Team).filter(Team.name.like(f"%{home_name}%")).first()
-                db_away = db.query(Team).filter(Team.name.like(f"%{away_name}%")).first()
-                
-                if not db_home or not db_away:
-                    continue
-                
-                match_obj = db.query(Match).filter(
-                    Match.home_team_id == db_home.id,
-                    Match.away_team_id == db_away.id,
-                    Match.status == "scheduled"
-                ).first()
-                
-                if not match_obj:
-                    continue
-                
-                bookmaker = None
-                for b in event.get("bookmakers", []):
-                    if b["key"] == "bet365":
-                        bookmaker = b
-                        break
-                if not bookmaker and event.get("bookmakers", []):
-                    bookmaker = event["bookmakers"][0]
-                    
-                if bookmaker:
-                    market = [m for m in bookmaker.get("markets", []) if m["key"] == "h2h"]
-                    if market:
-                        outcomes = market[0].get("outcomes", [])
-                        for o in outcomes:
-                            price = o.get("price")
-                            if o["name"] == event["home_team"]:
-                                match_obj.odd_home = price
-                            elif o["name"] == event["away_team"]:
-                                match_obj.odd_away = price
-                            elif o["name"] in ["Draw", "Empate"]:
-                                match_obj.odd_draw = price
-            db.commit()
-            print("Odds reais associadas com sucesso a partir da The Odds API.")
+            if bookmaker:
+                market = [m for m in bookmaker.get("markets", []) if m["key"] == "h2h"]
+                if market:
+                    outcomes = market[0].get("outcomes", [])
+                    for o in outcomes:
+                        price = o.get("price")
+                        if o["name"] == event["home_team"]:
+                            match_obj.odd_home = price
+                        elif o["name"] == event["away_team"]:
+                            match_obj.odd_away = price
+                        elif o["name"] in ["Draw", "Empate"]:
+                            match_obj.odd_draw = price
+        db.commit()
+        print("Odds reais associadas com sucesso a partir da The Odds API.")
     except Exception as e:
         print(f"Erro ao buscar odds da The Odds API: {e}")
+        raise e
