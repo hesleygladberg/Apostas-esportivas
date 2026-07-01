@@ -358,6 +358,116 @@ def debug_external_api():
         return {"error": str(e)}
 
 
+@router.post("/test-sync")
+def test_sync(db: Session = Depends(get_db)):
+    logs = []
+    logs.append("Starting test sync")
+    try:
+        # Check database before
+        m_count_before = db.query(Match).count()
+        t_count_before = db.query(Team).count()
+        logs.append(f"DB before: matches={m_count_before}, teams={t_count_before}")
+        
+        # 1. Call fetch_real_api_data manually but with logs
+        from app.config import settings
+        if not settings.THE_ODDS_API_KEY or not settings.FOOTBALL_DATA_API_KEY:
+            logs.append("Error: keys not configured")
+            return {"logs": logs}
+            
+        headers = {"X-Auth-Token": settings.FOOTBALL_DATA_API_KEY}
+        db.query(Match).filter(Match.status == "scheduled").delete()
+        db.commit()
+        logs.append("Deleted scheduled matches")
+        
+        import requests
+        url = "https://api.football-data.org/v4/matches"
+        logs.append(f"Calling Football-Data API: {url}")
+        res = requests.get(url, headers=headers, timeout=12)
+        logs.append(f"Football-Data API response status: {res.status_code}")
+        
+        if res.status_code != 200:
+            logs.append(f"Football-Data API error: {res.text}")
+            return {"logs": logs}
+            
+        data = res.json()
+        matches_list = data.get("matches", [])
+        logs.append(f"Found {len(matches_list)} matches total in response")
+        
+        supported_competitions = ["PL", "PD", "SA", "BL1", "FL1", "CL", "BSA", "DED", "PPL", "WC", "EC", "CLI"]
+        
+        added_matches = 0
+        for m_data in matches_list:
+            comp_code = m_data.get("competition", {}).get("code")
+            status_raw = m_data.get("status")
+            
+            home_team_data = m_data.get("homeTeam") or {}
+            away_team_data = m_data.get("awayTeam") or {}
+            home_name = home_team_data.get("name")
+            away_name = away_team_data.get("name")
+            
+            logs.append(f"Match: {home_name} vs {away_name}, comp={comp_code}, status={status_raw}")
+            
+            if comp_code not in supported_competitions:
+                logs.append(f"  Skipped: comp {comp_code} not in supported")
+                continue
+                
+            if status_raw not in ["TIMED", "SCHEDULED"]:
+                logs.append(f"  Skipped: status {status_raw} is not TIMED or SCHEDULED")
+                continue
+                
+            # Create teams
+            league_name = m_data.get("competition", {}).get("name")
+            country = m_data.get("area", {}).get("name", "Europa") if m_data.get("area") else "Europa"
+            
+            home_team = db.query(Team).filter(Team.name == home_name).first()
+            if not home_team:
+                home_team = Team(name=home_name, league=league_name, country=country)
+                db.add(home_team)
+                db.flush()
+                logs.append(f"  Created home team {home_name}")
+                
+            away_team = db.query(Team).filter(Team.name == away_name).first()
+            if not away_team:
+                away_team = Team(name=away_name, league=league_name, country=country)
+                db.add(away_team)
+                db.flush()
+                logs.append(f"  Created away team {away_name}")
+                
+            date_str = m_data["utcDate"].replace("Z", "")
+            from datetime import datetime
+            match_date = datetime.fromisoformat(date_str)
+            status = "finished" if status_raw in ["FINISHED", "AWARDED"] else "scheduled"
+            
+            match_obj = Match(
+                date=match_date,
+                status=status,
+                league=league_name,
+                country=country,
+                home_team_id=home_team.id,
+                away_team_id=away_team.id,
+                odd_volume=50000
+            )
+            db.add(match_obj)
+            added_matches += 1
+            logs.append(f"  Added match: {home_name} vs {away_name}")
+            
+        db.commit()
+        logs.append(f"Committed {added_matches} matches to DB")
+        
+        # Check database after
+        m_count_after = db.query(Match).count()
+        t_count_after = db.query(Team).count()
+        logs.append(f"DB after: matches={m_count_after}, teams={t_count_after}")
+        
+    except Exception as e:
+        import traceback
+        logs.append(f"Exception raised: {str(e)}")
+        logs.append(traceback.format_exc())
+        db.rollback()
+        
+    return {"logs": logs}
+
+
 @router.get("/{match_id}", response_model=MatchDetailResponse)
 def get_match_by_id(match_id: int, db: Session = Depends(get_db)):
     """
