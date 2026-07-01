@@ -142,12 +142,20 @@ export default function Dashboard() {
   const handleSync = () => {
     setSyncing(true);
     fetch(`${apiUrl}/api/matches/sync`, { method: "POST" })
-      .then((res) => {
+      .then(async (res) => {
         if (res.ok) {
-          loadMatches(false); // recarrega dados sem tela cheia de loading
+          loadMatches(false);
+          alert("Sincronização concluída com sucesso!");
+        } else {
+          const errorData = await res.json().catch(() => ({}));
+          const errorMsg = errorData.detail || "Erro desconhecido durante a sincronização.";
+          alert(`Falha na sincronização:\n${errorMsg}`);
         }
       })
-      .catch((err) => console.error("Erro de sincronização:", err))
+      .catch((err) => {
+        console.error("Erro de sincronização:", err);
+        alert(`Erro de conexão com o servidor:\n${err.message}`);
+      })
       .finally(() => setSyncing(false));
   };
 
